@@ -30,4 +30,5 @@
   (defparameter +sym-sname+ (string +sym-name+))
   (defparameter +sym-fullname+ (concatenate 'string +pkg-sname+ ":" +sym-sname+))
   (defparameter +sym-fullnickname+ (concatenate 'string +nn-sname+ ":" +sym-sname+))
-  (defparameter +sym+ (find-symbol +sym-sname+ +pkg-name+)))
+  (defparameter +sym+ (or (find-symbol +sym-sname+ +pkg-name+)
+                          (error "Symbol not found while loading tests: check +SYM+ binding."))))
