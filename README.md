@@ -15,7 +15,7 @@ This test code is based on the SBCL tests for package local nicknames.
 
 * SBCL: PASS
 * ABCL: PASS
-* ECL: FAIL ([1](https://gitlab.com/embeddable-common-lisp/ecl/issues/462),
+* ECL: FAIL ([1](https://gitlab.com/embeddable-common-lisp/ecl/issues/466),
   [2](https://gitlab.com/embeddable-common-lisp/ecl/issues/467))
 * CCL: FAIL (not implemented yet)
 
