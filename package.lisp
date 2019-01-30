@@ -2,6 +2,7 @@
 
 (defpackage #:package-local-nicknames-tests
   (:use #:cl)
+  (:export #:run)
   (:import-from
    #+sbcl #:sb-ext
    #+ccl  #:ccl
