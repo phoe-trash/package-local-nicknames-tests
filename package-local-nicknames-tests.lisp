@@ -16,15 +16,17 @@
 (defun run (&optional (ignore-errors t))
   (let ((errors '()))
     (dolist (test *tests*)
-      (format t ";;;; ~A~%" test)
+      (format t ";;;; ~A: " test)
       (if ignore-errors
-        (handler-case (funcall test)
+        (handler-case (progn (funcall test)
+                             (format t "Success~%"))
           (error (e)
-            (format t "; Test failure in ~S:~%; ~A~%" test e)
+            (format t "Failure: ~A~%" e)
             (push e errors)))
         (funcall test)))
-    (format t ";;;;;;;;;;;;;;;;;;;;;;;;;;;~%; ~D tests run, ~D failures."
-            (length *tests*) (length errors))))
+    (format t ";;;;~%;;;; ~D tests run, ~D failures."
+            (length *tests*) (length errors))
+    (null errors)))
 
 ;;; Test code
 
