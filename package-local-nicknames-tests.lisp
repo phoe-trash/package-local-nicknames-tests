@@ -91,7 +91,9 @@
 
 (define-test test-package-local-nicknames-nickname-removal
   (reset-test-packages)
+  (assert (= 2 (length (package-local-nicknames :package-local-nicknames-test-1))))
   (assert (remove-package-local-nickname :l :package-local-nicknames-test-1))
+  (assert (= 1 (length (package-local-nicknames :package-local-nicknames-test-1))))
   (let ((*package* (find-package :package-local-nicknames-test-1)))
     (let ((exit0 (read-from-string +sym-fullname+))
           (exit1 (find-symbol +sym-sname+ +nn-name+))
