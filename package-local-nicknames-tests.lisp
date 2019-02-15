@@ -1,6 +1,41 @@
 ;;;; package-local-nicknames-tests.lisp
 
+(defpackage #:package-local-nicknames-tests
+  (:nicknames :plntests)
+  (:use #:cl)
+  (:export #:run)
+  (:import-from
+   #+sbcl #:sb-ext
+   #+ccl  #:ccl
+   #+ecl  #:ext
+   #+abcl #:ext
+   #:package-local-nicknames
+   #:package-locally-nicknamed-by-list
+   #:add-package-local-nickname
+   #:remove-package-local-nickname))
+
 (in-package #:package-local-nicknames-tests)
+
+;;; Test data
+
+(progn
+  (defparameter +test-data+
+    #+sbcl '(:sb-ext :sb :exit)
+    #+ccl  '(:ccl    :cc :quit)
+    #+ecl  '(:ext    :ex :exit)
+    #+abcl '(:ext    :ex :quit))
+
+  (defparameter +pkg-name+ (first +test-data+))
+  (defparameter +nn-name+ (second +test-data+))
+  (defparameter +sym-name+ (third +test-data+))
+
+  (defparameter +pkg-sname+ (string +pkg-name+))
+  (defparameter +nn-sname+ (string +nn-name+))
+  (defparameter +sym-sname+ (string +sym-name+))
+  (defparameter +sym-fullname+ (concatenate 'string +pkg-sname+ ":" +sym-sname+))
+  (defparameter +sym-fullnickname+ (concatenate 'string +nn-sname+ ":" +sym-sname+))
+  (defparameter +sym+ (or (find-symbol +sym-sname+ +pkg-name+)
+                          (error "Symbol not found while loading tests: check +SYM+ binding."))))
 
 ;;; Test runner
 
@@ -16,15 +51,13 @@
 (defun run (&optional (ignore-errors t))
   (let ((errors '()))
     (dolist (test *tests*)
-      (format t ";;;; ~A: " test)
       (if ignore-errors
-        (handler-case (progn (funcall test)
-                             (format t "Success~%"))
+        (handler-case (funcall test)
           (error (e)
-            (format t "Failure: ~A~%" e)
+            (format t ";; ~A:~%;;;; ~A~%" test e)
             (push e errors)))
         (funcall test)))
-    (format t ";;;;~%;;;; ~D tests run, ~D failures."
+    (format t ";;~%;; ~D tests run, ~D failures."
             (length *tests*) (length errors))
     (null errors)))
 
@@ -37,9 +70,9 @@
      (delete-package :package-local-nicknames-test-1))
    (when (find-package :package-local-nicknames-test-2)
      (delete-package :package-local-nicknames-test-2)))
-  (eval `(defpackage :package-local-nicknames-test-1
+  (eval `(defpackage :package-local-nicknames-test-1 (:use)
            (:local-nicknames (:l :cl) (,+nn-name+ ,+pkg-name+))))
-  (eval `(defpackage :package-local-nicknames-test-2
+  (eval `(defpackage :package-local-nicknames-test-2 (:use)
            (:export "CONS"))))
 
 (define-test test-package-local-nicknames-introspection
@@ -85,15 +118,22 @@
               (handler-case
                   (add-package-local-nickname :l :package-local-nicknames-test-2
                                               :package-local-nicknames-test-1)
-                (error () :oopsie))))
+                (package-error () :oopsie))))
   ;; ...but same name twice is OK.
   (add-package-local-nickname :l :cl :package-local-nicknames-test-1))
 
 (define-test test-package-local-nicknames-nickname-removal
+  (declare (optimize (debug 3) (speed 0)))
   (reset-test-packages)
   (assert (= 2 (length (package-local-nicknames :package-local-nicknames-test-1))))
   (assert (remove-package-local-nickname :l :package-local-nicknames-test-1))
   (assert (= 1 (length (package-local-nicknames :package-local-nicknames-test-1))))
+  (let ((*package* (find-package :package-local-nicknames-test-1)))
+    (assert (not (find-package :l)))))
+
+(define-test test-package-local-nicknames-nickname-removal-remaining
+  (reset-test-packages)
+  (remove-package-local-nickname :l :package-local-nicknames-test-1)
   (let ((*package* (find-package :package-local-nicknames-test-1)))
     (let ((exit0 (read-from-string +sym-fullname+))
           (exit1 (find-symbol +sym-sname+ +nn-name+))
@@ -101,8 +141,7 @@
       (assert (eq +sym+ exit0))
       (assert (eq +sym+ exit1))
       (assert (equal +sym-fullnickname+ (prin1-to-string exit0)))
-      (assert (eq sb (find-package +pkg-name+)))
-      (assert (not (find-package :l))))))
+      (assert (eq sb (find-package +pkg-name+))))))
 
 (define-test test-package-local-nicknames-nickname-removal-readd-another-symbol-equality
   (reset-test-packages)

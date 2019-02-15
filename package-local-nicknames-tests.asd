@@ -6,5 +6,4 @@
   :license  "Specify license here"
   :version "0.0.1"
   :serial t
-  :components ((:file "package")
-               (:file "package-local-nicknames-tests")))
+  :components ((:file "package-local-nicknames-tests")))
