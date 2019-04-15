@@ -76,22 +76,28 @@
            (:export "CONS"))))
 
 (define-test test-package-local-nicknames-introspection
-  (reset-test-packages)
-  (let ((alist (package-local-nicknames :package-local-nicknames-test-1)))
-    (assert (equal (cons "L" (find-package "CL")) (assoc "L" alist :test 'string=)))
-    (assert (equal (cons +nn-sname+ (find-package +pkg-sname+))
-                   (assoc +nn-sname+ alist :test 'string=)))
-    (assert (eql 2 (length alist)))))
+    (reset-test-packages)
+  (dolist (p '("KEYWORD" "COMMON-LISP" "COMMON-LISP-USER"
+               :package-local-nicknames-test-1
+               :package-local-nicknames-test-2))
+    (let ((*package* (find-package p)))
+      (let ((alist (package-local-nicknames :package-local-nicknames-test-1)))
+        (assert (equal (cons "L" (find-package "CL")) (assoc "L" alist :test 'string=)))
+        (assert (equal (cons +nn-sname+ (find-package +pkg-sname+))
+                       (assoc +nn-sname+ alist :test 'string=)))
+        (assert (eql 2 (length alist)))))))
 
 (define-test test-package-local-nicknames-symbol-equality
   (reset-test-packages)
   (let ((*package* (find-package :package-local-nicknames-test-1)))
     (let ((cons0 (read-from-string "L:CONS"))
           (cons1 (find-symbol "CONS" :l))
+          (cons1s (find-symbol "CONS" #\L))
           (exit0 (read-from-string +sym-fullname+))
           (exit1 (find-symbol +sym-sname+ +nn-name+)))
       (assert (eq 'cons cons0))
       (assert (eq 'cons cons1))
+      (assert (eq 'cons cons1s))
       (assert (eq +sym+ exit0))
       (assert (eq +sym+ exit1)))))
 
@@ -99,8 +105,10 @@
   (reset-test-packages)
   (let ((*package* (find-package :package-local-nicknames-test-1)))
     (let ((cl (find-package :l))
+          (cls (find-package #\L))
           (sb (find-package +nn-name+)))
       (assert (eq cl (find-package :common-lisp)))
+      (assert (eq cls (find-package :common-lisp)))
       (assert (eq sb (find-package +pkg-name+))))))
 
 (define-test test-package-local-nicknames-symbol-printing
@@ -120,13 +128,23 @@
                                               :package-local-nicknames-test-1)
                 (package-error () :oopsie))))
   ;; ...but same name twice is OK.
-  (add-package-local-nickname :l :cl :package-local-nicknames-test-1))
+  (add-package-local-nickname :l :cl :package-local-nicknames-test-1)
+  (add-package-local-nickname #\L :cl :package-local-nicknames-test-1))
 
 (define-test test-package-local-nicknames-nickname-removal
   (declare (optimize (debug 3) (speed 0)))
   (reset-test-packages)
   (assert (= 2 (length (package-local-nicknames :package-local-nicknames-test-1))))
   (assert (remove-package-local-nickname :l :package-local-nicknames-test-1))
+  (assert (= 1 (length (package-local-nicknames :package-local-nicknames-test-1))))
+  (let ((*package* (find-package :package-local-nicknames-test-1)))
+    (assert (not (find-package :l)))))
+
+(define-test test-package-local-nicknames-nickname-removal-char
+  (declare (optimize (debug 3) (speed 0)))
+  (reset-test-packages)
+  (assert (= 2 (length (package-local-nicknames :package-local-nicknames-test-1))))
+  (assert (remove-package-local-nickname #\L :package-local-nicknames-test-1))
   (assert (= 1 (length (package-local-nicknames :package-local-nicknames-test-1))))
   (let ((*package* (find-package :package-local-nicknames-test-1)))
     (assert (not (find-package :l)))))
@@ -248,7 +266,19 @@
       (add-package-local-nickname :own-name-as-nickname1 p2 p1))
     (assert (eq (intern "FOO" p2)
                 (let ((*package* p1))
-                  (intern "FOO" :own-name-as-nickname1))))))
+                  (intern "FOO" :own-name-as-nickname1))))
+    (let ((sym (intern "BAR" p2))
+          (lam '(lambda (x) (intern x :own-name-as-nickname1))))
+      (dolist (p '("COMMON-LISP" "KEYWORD" "COMMON-LISP-USER"
+                   "OWN-NAME-AS-NICKNAME1"
+                   "OWN-NAME-AS-NICKNAME2"))
+        (let ((*package* p1))
+          (assert (eq sym (funcall
+                           (let ((*package* (find-package p))) (compile nil lam))
+                           "BAR"))
+                  ()
+                  "test-own-name-as-local-nickname-intern failed for p = ~s"
+                  p))))))
 
 (define-test test-own-nickname-as-local-nickname-cerror
   (with-tmp-packages ((p1 (make-package "OWN-NICKNAME-AS-NICKNAME1"
@@ -269,4 +299,17 @@
       (add-package-local-nickname :own-nickname p2 p1))
     (assert (eq (intern "FOO" p2)
                 (let ((*package* p1))
-                  (intern "FOO" :own-nickname))))))
+                  (intern "FOO" :own-nickname))))
+    (let ((sym (intern "BAR" p2))
+          (lam '(lambda (x) (intern x :own-nickname)))
+          (*package* p1))
+      (dolist (p '("COMMON-LISP" "KEYWORD" "COMMON-LISP-USER"
+                   "OWN-NICKNAME-AS-NICKNAME1"
+                   "OWN-NICKNAME-AS-NICKNAME2"))
+        (assert (eq sym
+                    (funcall
+                     (let ((*package* (find-package p))) (compile nil lam))
+                     "BAR"))
+                ()
+                "test-own-nickname-as-local-nickname-intern failed on p = ~s"
+                p)))))
