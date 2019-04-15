@@ -132,7 +132,6 @@
   (add-package-local-nickname #\L :cl :package-local-nicknames-test-1))
 
 (define-test test-package-local-nicknames-nickname-removal
-  (declare (optimize (debug 3) (speed 0)))
   (reset-test-packages)
   (assert (= 2 (length (package-local-nicknames :package-local-nicknames-test-1))))
   (assert (remove-package-local-nickname :l :package-local-nicknames-test-1))
