@@ -5,10 +5,11 @@
   (:use #:cl)
   (:export #:run)
   (:import-from
-   #+sbcl #:sb-ext
-   #+ccl  #:ccl
-   #+ecl  #:ext
-   #+abcl #:ext
+   #+sbcl  #:sb-ext
+   #+ccl   #:ccl
+   #+ecl   #:ext
+   #+clasp #:ext
+   #+abcl  #:ext
    #:package-local-nicknames
    #:package-locally-nicknamed-by-list
    #:add-package-local-nickname
