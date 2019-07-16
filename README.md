@@ -1,3 +1,7 @@
+# Deprecated
+
+Use [trivial-package-local-nicknames](https://github.com/phoe/trivial-package-local-nicknames) instead.
+
 # package-local-nicknames-tests
 
 A public test suite for package local nicknames.
